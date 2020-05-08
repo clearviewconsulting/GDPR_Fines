@@ -1,0 +1,128 @@
+---
+title: "GDPR_Fines"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: cosmo
+    orientation: columns
+    vertical_layout: scroll
+    navbar:
+      - { title: "Help", icon: "fa-life-ring", href: "https://cviewllc.com/contact-us/" 
+       }
+
+---
+
+
+```{r}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(ggplot2)
+library(scales)
+```
+
+
+
+```{r}
+raw <- readr::read_tsv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv') %>% 
+  rename(country = name) %>% 
+  mutate(date = na_if(mdy(date), "1970-01-01"))
+```
+
+
+Row
+--------------------------------------------
+
+<!-- ```{r} -->
+<!-- totalFineByCountry <- raw %>%  -->
+<!--   count(country = fct_lump(country, 6, w = total), sort = TRUE, wt = total, name = "Total Fine" %>%  -->
+<!--           ) -->
+<!-- ``` -->
+
+
+```{r}
+#Totals by year Setup
+
+countryByYear <- raw %>%
+  group_by(country, date = year(date), article_violated) %>%
+  summarise(total = sum(price))
+
+countryByYear2 <- countryByYear %>%
+  filter(!is.na(date)) %>%
+  group_by(country, total, date, article_violated)
+
+countryBy2018 <- countryByYear %>%
+  filter(!is.na(date), date == "2018") %>%
+  group_by(country, total, date)
+
+countryBy2019 <- countryByYear %>%
+  filter(!is.na(date), date == "2019") %>%
+  group_by(country, total, date)
+
+countryBy2020 <- countryByYear %>%
+  filter(!is.na(date), date == "2020") %>%
+  group_by(country, total, date)
+
+# countryByYear2 %>%
+#   ggplot(aes(x = reorder((fct_lump(country, 3, w = total)), -total),  y = total)) +
+#   geom_col() +
+#   labs(x = "Country", y = "Total Fine") +
+#   scale_y_continuous(labels = dollar_format()) +
+#   facet_wrap(~ date)
+```
+
+
+### {.one}
+#### Fines in 2018
+```{r}
+countryBy2019 %>%
+  ggplot(aes(x = reorder((fct_lump(country, 6, w = total)), -total),  y = total)) +
+  geom_col() +
+  labs(x = "Country", y = "Total Fine") +
+  scale_y_continuous(labels = dollar_format())
+
+# countryBy2018 %>%
+#   ggplot(aes(x = total,  y = reorder((fct_lump(country, 4, w = total)), -total))) +
+#   geom_col() +
+#   labs(x = "Country", y = "Total Fine") +
+#   scale_x_continuous(labels = dollar_format())
+```
+
+
+### {.two}
+#### Fines in 2019
+```{r}
+countryBy2019 %>%
+  ggplot(aes(x = reorder((fct_lump(country, 6, w = total)), -total),  y = total)) +
+  geom_col() +
+  labs(x = "Country", y = "Total Fine") +
+  scale_y_continuous(labels = dollar_format())
+```
+
+
+### {.three}
+#### Fines in 2020
+```{r}
+countryBy2020 %>%
+  ggplot(aes(x = reorder((fct_lump(country, 6, w = total)), -total),  y = total)) +
+  geom_col() +
+  labs(x = "Country", y = "Total Fine") +
+  scale_y_continuous(labels = dollar_format())
+```
+
+{.column}
+### Fines For Total Time in Effect
+```{r}
+countryByYear3 <- countryByYear2
+
+countryByYear3 %>% 
+  ggplot(aes(x = reorder((fct_lump(country, 8, w = total)), -total), y = total)) +
+  geom_col() +
+  labs(x = "Country", y = "Total Fine") +
+  scale_y_continuous(labels = dollar_format())
+  
+```
+
+
+
+
+
