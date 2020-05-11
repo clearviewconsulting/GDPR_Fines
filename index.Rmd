@@ -1,0 +1,27 @@
+---
+title: "index"
+author: "Clearview Consulting"
+date: "5/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+
+# GDPR Fines Data
+## Graph of GDPR fines over time
+Add vlines for key regulatory dates (i.e. went into effect 5/25/2018)
+
+#GDPR Fines by Article
+## Graph of GDPR fines by article
+
+## Analysis of most frequest articles cited
+
+## Example violation group 1
+
+## Example violation group 1
+
+# Conclusion
