@@ -1,27 +1,155 @@
 ---
-title: "index"
-author: "Clearview Consulting"
-date: "5/11/2020"
-output: html_document
+title: "GDPR Fines Analytics"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: cosmo
+    orientation: columns
+    vertical_layout: scroll
+    favicon: CVC_Favicon.png
+    navbar:
+      - { title: "Help", icon: "fa-life-ring", href: "https://cviewllc.com/contact-us/" }
 ---
+
+```{r}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(ggplot2)
+library(scales)
+library(RColorBrewer)
+```
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Overview
+```{r, include=FALSE}
+gdpr_violations <- readr::read_tsv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv') %>% 
+  rename(country = name) %>% 
+  mutate(date = na_if(mdy(date), "1970-01-01"))
 
-# GDPR Fines Data
-## Graph of GDPR fines over time
-Add vlines for key regulatory dates (i.e. went into effect 5/25/2018)
+gdpr_text <- read_tsv("./Input/gdpr_text.tsv")
+```
 
-#GDPR Fines by Article
-## Graph of GDPR fines by article
+<!-- # Overview -->
 
-## Analysis of most frequest articles cited
+<!-- # GDPR Fines Data -->
+<!-- ## Graph of GDPR fines over time -->
+<!-- Add vlines for key regulatory dates (i.e. went into effect 5/25/2018) -->
 
-## Example violation group 1
+<!-- #GDPR Fines by Article -->
+<!-- ## Graph of GDPR fines by article -->
 
-## Example violation group 1
+<!-- ## Analysis of most frequent articles cited -->
 
-# Conclusion
+<!-- ## Example violation group 1 -->
+
+<!-- ## Example violation group 1 -->
+
+<!-- # Conclusion -->
+
+Main {data-orientation=rows}
+=====================================
+
+Row
+-----------------
+### Overview
+Clearview Group's Data Analytic program utilized Tidy Tuesday's weekly data set release (https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-21/readme.md), along with David Robinson's screencast (https://www.youtube.com/watch?v=EVvnnWKO_4w&t=475s) to analyze and create a Dashboard detailing the GDPR fines that have occured since the regulation was put into place.
+
+
+Row
+-----------------
+###
+```{r, echo = FALSE}
+gdpr_violations %>% 
+  count(country = fct_lump(country, 9, w = price),
+        sort = TRUE, wt = price, name = "Total Fines") %>% 
+  mutate(country = fct_reorder(country, `Total Fines`)) %>% 
+  ggplot(aes(`Total Fines`, country)) +
+  geom_col() +
+  scale_x_continuous(labels = dollar_format()) %>% 
+  labs(y = "Country")
+```
+
+###
+```{r, echo = FALSE}
+gdpr_violations %>% 
+  count(month = floor_date(date, "month"),
+        country = fct_lump(country, 4, w = price),
+        sort = TRUE, wt = price, name = "Total Fines") %>% 
+  mutate(country = fct_reorder(country, -`Total Fines`, sum)) %>% 
+  ggplot(aes(month, `Total Fines`, fill = country)) +
+  geom_col() +
+  geom_vline(xintercept = as.numeric("2019-05-05"), color = "red") +
+  scale_y_continuous(labels = dollar_format()) +
+  labs(x = "Time",
+       y = "Total Fines",
+       fill = "Country")
+```
+
+
+Row
+-----------------------
+###
+This graph depicts the countries with the most fines issued since the implementation of the regulation in 2018 
+
+###
+This graph shows a time series of the total fines issues per month. The coloring of the bars break down which country issued the fines, with the 'Country' labels ordered from largest total amount of fines issued (in euros) to least.
+
+
+
+Row
+----------------------
+
+```{r, echo = FALSE}
+
+article_titles <- gdpr_text %>%
+  distinct(article, article_title)
+
+separated_articles <- gdpr_violations %>%
+  separate_rows(article_violated, sep = "\\|") %>%
+  extract(article_violated, "article", "Art\\. ?(\\d+)", convert = TRUE, remove = FALSE) %>%
+  left_join(article_titles, by = "article") %>%
+  mutate(article_title = paste0(article, ". ", str_trunc(article_title, 50)),
+         article_title = ifelse(is.na(article), "Unknown", article_title)) %>%
+  add_count(id) %>%
+  mutate(price_per_article = price / n)
+
+top_articles_violated <- separated_articles %>% 
+                          select(article_violated, article, price, price_per_article) %>% 
+                          group_by(article) %>% 
+                          summarize(Count = n(),
+                                    Avg = mean(price)) %>% 
+                          arrange(-Count) %>% 
+                          head(9)
+
+gdpr_violations %>%
+  filter(price < 10*1e6) %>% 
+  separate_rows(article_violated, sep = "\\|") %>%
+  extract(article_violated, "article", "Art\\. ?(\\d+)", convert = TRUE, remove = FALSE) %>%
+  left_join(article_titles, by = "article") %>%
+  mutate(article_title = paste0(article, ". ", str_trunc(article_title, 50)),
+         article_title = ifelse(is.na(article), "Unknown", article_title)) %>%
+  add_count(id) %>%
+  filter(article %in% top_articles_violated$article) %>% 
+  mutate(price_per_article = price / n) %>% 
+  mutate(month = floor_date(date, unit = "quarter")) %>% 
+  group_by(month, article_title) %>%
+  summarize(violations = n(),
+            total_fine = sum(price)) %>%
+  ggplot(aes(month, total_fine, fill = article_title)) +
+  geom_col() +
+  facet_wrap(~article_title, scales = "free_y") +
+  scale_y_continuous(labels = dollar_format(prefix = "")) +
+  scale_size_continuous(guide = FALSE) +
+  theme(legend.position = "none") +
+  labs(title = "GDPR Violations",
+       subtitle = "by Article",
+       color = "",
+       x = "",
+       y = "Total Amount (€)")
+```
+
+
+
